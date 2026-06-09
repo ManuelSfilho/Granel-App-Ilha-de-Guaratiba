@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Leitor de Produtos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4CAF50">
+<link rel="icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+  :root {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #f5f7fa;
+    --border: #e3e8ef;
+    --accent: #0b9e6e;
+    --accent2: #e85d26;
+    --accent3: #5b50d6;
+    --text: #111827;
+    --text2: #6b7280;
+    --danger: #dc2626;
+    --success: #0b9e6e;
+    --radius: 18px;
+    --radius-sm: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 1px 0 var(--border), 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .header-icon {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .header-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--text); }
+  .header-sub { font-size: 11px; color: var(--text2); }
+
+  /* ── MAIN MENU ── */
+  .main-menu {
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .menu-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: all 0.18s;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .menu-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .menu-card.nf::before { background: linear-gradient(135deg, rgba(11,158,110,0.08), transparent); }
+  .menu-card.granel::before { background: linear-gradient(135deg, rgba(232,93,38,0.08), transparent); }
+  .menu-card:active { transform: scale(0.98); }
+  .menu-card:active::before { opacity: 1; }
+
+  .menu-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+  }
+  .menu-icon.nf { background: rgba(11,158,110,0.12); }
+  .menu-icon.granel { background: rgba(232,93,38,0.12); }
+
+  .menu-text h2 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; }
+  .menu-text p { font-size: 12px; color: var(--text2); margin-top: 3px; }
+
+  .menu-arrow { margin-left: auto; color: var(--text2); font-size: 18px; }
+
+  /* ── SCREENS ── */
+  .screen {
+    display: none;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  .screen.active { display: flex; }
+
+  .screen-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 0 var(--border), 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .back-btn {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 20px; font-weight: 700;
+    flex-shrink: 0; line-height: 1;
+    transition: background 0.15s, transform 0.1s;
+    -webkit-user-select: none; user-select: none;
+  }
+  .back-btn:active { background: var(--border); transform: scale(0.93); }
+  .screen-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; }
+
+  .screen-body { padding: 20px; flex: 1; overflow-y: auto; }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #9ca3af;
+    margin-bottom: 10px;
+    margin-top: 20px;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* ── SCAN BUTTON ── */
+  .scan-btn {
+    width: 100%;
+    background: rgba(11,158,110,0.05);
+    border: 2px dashed rgba(11,158,110,0.3);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    color: var(--accent);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+  }
+  .scan-btn:active { background: rgba(11,158,110,0.1); border-color: var(--accent); }
+
+  /* ── INPUT ── */
+  .input-group { margin-bottom: 12px; }
+  .input-group label { font-size: 12px; font-weight: 500; color: var(--text2); display: block; margin-bottom: 6px; }
+
+  input, select, textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(11,158,110,0.15);
+  }
+  input::placeholder { color: #b4bac6; }
+
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+  select option { background: var(--surface); color: var(--text); }
+
+  /* ── VENCIMENTO ROWS ── */
+  .venc-list { display: flex; flex-direction: column; gap: 10px; }
+  .venc-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 36px;
+    gap: 8px;
+    align-items: end;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .venc-row label { font-size: 11px; color: var(--text2); display: block; margin-bottom: 4px; }
+  .venc-row input { padding: 8px 10px; font-size: 13px; }
+  .venc-remove {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: rgba(255,71,87,0.12);
+    border: 1px solid rgba(255,71,87,0.25);
+    color: var(--danger);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; align-self: flex-end;
+  }
+  .add-venc-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    color: var(--text2);
+    font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; cursor: pointer; margin-top: 8px;
+    transition: all 0.2s;
+  }
+  .add-venc-btn:active { border-color: var(--accent); color: var(--accent); background: rgba(11,158,110,0.05); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary {
+    background: linear-gradient(135deg, #0db87f, #0b9e6e);
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(11,158,110,0.3);
+  }
+  .btn-secondary {
+    background: linear-gradient(135deg, #e85d26, #c94e1c);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(232,93,38,0.3);
+  }
+  .btn-outline {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+  }
+
+  /* ── PRODUCT SEARCH (GRANEL) ── */
+  .search-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .search-bar input { flex: 1; }
+  .search-cam-btn {
+    width: 44px; height: 44px; flex-shrink: 0;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 20px;
+  }
+
+  .product-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .product-item {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .product-item.selected { border-color: var(--accent2); background: rgba(232,93,38,0.07); outline: 1px solid var(--accent2); }
+  .product-item:active { transform: scale(0.99); }
+  .product-info { flex: 1; min-width: 0; }
+  .product-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .product-code { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  .qty-control {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .qty-btn {
+    width: 32px; height: 32px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .qty-btn:active { background: rgba(0,0,0,0.07); }
+  .qty-val {
+    width: 36px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    color: var(--text);
+    padding: 0;
+  }
+  /* Hide number input arrows */
+  .qty-val::-webkit-inner-spin-button, .qty-val::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .qty-val[type=number] { -moz-appearance: textfield; }
+
+  .cart-section {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+  .cart-header { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .cart-count { background: var(--accent2); color: #fff; border-radius: 20px; padding: 2px 8px; font-size: 11px; }
+  .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .cart-item:last-child { border-bottom: none; }
+  .cart-item-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+  .cart-item-qty { background: var(--surface2); border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 600; color: var(--accent2); margin-left: 8px; flex-shrink: 0; }
+  .cart-remove { color: var(--danger); cursor: pointer; margin-left: 8px; font-size: 16px; flex-shrink: 0; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(17,24,39,0.45);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px 32px;
+    width: 100%;
+    border-top: 1px solid var(--border);
+    animation: slideUp 0.3s ease;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.1);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+  .modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; margin-bottom: 16px; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+
+  /* ── SCANNER OVERLAY ── */
+  .scanner-overlay {
+    position: fixed; inset: 0;
+    background: #000;
+    z-index: 300;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .scanner-overlay.active { display: flex; }
+  .scanner-video { width: 100%; max-width: 400px; border-radius: 12px; }
+  .scanner-frame {
+    position: absolute;
+    width: 240px; height: 140px;
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+  }
+  .scanner-frame::before, .scanner-frame::after {
+    content: '';
+    position: absolute;
+    width: 20px; height: 20px;
+    border-color: var(--accent);
+    border-style: solid;
+  }
+  .scanner-frame::before { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 6px 0 0 0; }
+  .scanner-frame::after { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 6px 0; }
+  .scanner-line {
+    position: absolute;
+    width: 220px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: scanLine 1.5s ease-in-out infinite;
+  }
+  @keyframes scanLine {
+    0% { top: 10px; }
+    50% { top: 120px; }
+    100% { top: 10px; }
+  }
+  .scanner-text { color: #fff; font-size: 14px; margin-top: 20px; opacity: 0.7; }
+  .scanner-close {
+    position: absolute;
+    top: 50px; right: 20px;
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: #fff;
+    width: 40px; height: 40px;
+    border-radius: 20px;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .scanner-manual-btn {
+    margin-top: 24px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1a1f2e;
+    border: none;
+    border-radius: 30px;
+    padding: 12px 22px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 500;
+    white-space: nowrap;
+    transition: transform 0.3s ease;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast { color: #fff; box-shadow: 0 4px 24px rgba(0,0,0,0.2); }
+  .toast.success { background: #0b9e6e; }
+  .toast.error { background: #dc2626; }
+
+  /* ── FILE UPLOAD ── */
+  .file-upload-area {
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+  }
+  .file-upload-area.has-file { border-color: var(--accent2); background: rgba(232,93,38,0.05); }
+  .file-upload-area .icon { font-size: 28px; margin-bottom: 8px; }
+  .file-upload-area p { font-size: 13px; color: var(--text2); }
+  .file-upload-area .file-name { font-size: 12px; color: var(--accent2); margin-top: 4px; font-weight: 500; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text2); }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* ── BADGE ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(11,158,110,0.1);
+    border: 1px solid rgba(11,158,110,0.2);
+    color: var(--accent);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .spacer { height: 30px; }
+</style>
+</head>
+<body>
+
+  <script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js');
+}
+</script>
+
+<!-- ══════════════════════════════════════ MAIN SCREEN ══════════════════════════════════════ -->
+<div id="screen-main" class="screen active" style="flex-direction:column; min-height:100vh;">
+  <div class="header">
+    <div class="header-icon">📦</div>
+    <div>
+      <div class="header-title">Leitor de Produtos</div>
+      <div class="header-sub">Lançamentos e Notas Fiscais</div>
+    </div>
+  </div>
+
+  <div class="main-menu" style="flex:1;">
+    <div style="margin-bottom:8px;">
+      <div style="font-family:'Syne',sans-serif; font-size:22px; font-weight:800; line-height:1.2;">
+        O que você<br>quer lançar?
+      </div>
+      <div style="font-size:13px; color:var(--text2); margin-top:6px;">Selecione o tipo de operação</div>
+    </div>
+
+    <div class="menu-card nf" onclick="showScreen('screen-nf')">
+      <div class="menu-icon nf">🧾</div>
+      <div class="menu-text">
+        <h2>Nota Fiscal</h2>
+        <p>Bonificação, transferência e vencimentos</p>
+      </div>
+      <span class="menu-arrow">›</span>
+    </div>
+
+    <div class="menu-card granel" onclick="showScreen('screen-granel')">
+      <div class="menu-icon granel">🌾</div>
+      <div class="menu-text">
+        <h2>Lançamento Granel</h2>
+        <p>Pesquise e lance produtos via planilha</p>
+      </div>
+      <span class="menu-arrow">›</span>
+    </div>
+
+    <div style="margin-top:auto; padding-top:30px; text-align:center;">
+      <div style="font-size:11px; color:var(--text2);"><span style="color:var(--accent)"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ NF SCREEN ══════════════════════════════════════ -->
+<div id="screen-nf" class="screen">
+  <div class="screen-header">
+    <div class="back-btn" onclick="showScreen('screen-main')">‹</div>
+    <div>
+      <div class="screen-title">🧾 Nota Fiscal</div>
+      <div style="font-size:11px; color:var(--text2);">Preencha os dados da nota</div>
+    </div>
+  </div>
+
+  <div class="screen-body">
+
+    <!-- Chave da nota -->
+    <div class="section-label">Chave de Acesso</div>
+    <button class="scan-btn" onclick="openScanner('nf-key')">
+      <span>📷</span> Escanear chave via câmera
+    </button>
+    <div class="input-group">
+      <label>Chave de Acesso (44 dígitos)</label>
+      <input type="text" id="nf-key" placeholder="0000 0000 0000 0000 0000..." maxlength="48" inputmode="numeric">
+    </div>
+
+    <!-- Número e Valor -->
+    <div class="section-label">Dados da Nota</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+      <div class="input-group" style="margin-bottom:0;">
+        <label>Número NF</label>
+        <input type="text" id="nf-numero" placeholder="000000" inputmode="numeric">
+      </div>
+      <div class="input-group" style="margin-bottom:0;">
+        <label>Valor Total (R$)</label>
+        <input type="text" id="nf-valor" placeholder="0,00" inputmode="decimal" oninput="formatCurrency(this)">
+      </div>
+    </div>
+
+    <!-- Fornecedor -->
+    <div class="section-label">Fornecedor</div>
+    <div class="input-group">
+      <label>Nome do Fornecedor *</label>
+      <input type="text" id="nf-fornecedor" placeholder="Ex: Distribuidora XYZ...">
+    </div>
+
+    <!-- Tipo de nota -->
+    <div class="section-label">Tipo de Nota</div>
+    <div class="input-group">
+      <label>Selecione o tipo</label>
+      <select id="nf-tipo" onchange="toggleVencimento()">
+        <option value="">— Selecione —</option>
+        <option value="bonificacao">🎁 Bonificação</option>
+        <option value="transferencia">🔄 Transferência</option>
+        <option value="compra">🛒 Compra</option>
+        <option value="devolucao">↩️ Devolução</option>
+        <option value="outro">📄 Outro</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label>Observações (opcional)</label>
+      <textarea id="nf-obs" rows="2" placeholder="Informações adicionais..." style="resize:none;"></textarea>
+    </div>
+
+    <!-- Vencimentos -->
+    <div id="vencimento-section">
+      <div class="section-label">Vencimento(s) do Boleto</div>
+      <div class="venc-list" id="venc-list">
+        <div class="venc-row" data-index="0">
+          <div>
+            <label>Vencimento</label>
+            <input type="date" class="venc-data">
+          </div>
+          <div>
+            <label>Valor (R$)</label>
+            <input type="text" class="venc-valor" placeholder="0,00" inputmode="decimal" oninput="formatCurrency(this)">
+          </div>
+          <div class="venc-remove" onclick="removeVenc(this)" title="Remover">✕</div>
+        </div>
+      </div>
+      <button class="add-venc-btn" onclick="addVenc()">
+        <span>+</span> Adicionar vencimento
+      </button>
+    </div>
+
+    <div class="divider"></div>
+
+    <button class="btn btn-primary" onclick="openConfirmModal('nf')">
+      <span>📤</span> Enviar Nota Fiscal
+    </button>
+
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ GRANEL SCREEN ══════════════════════════════════════ -->
+<div id="screen-granel" class="screen">
+  <div class="screen-header">
+    <div class="back-btn" onclick="showScreen('screen-main')">‹</div>
+    <div>
+      <div class="screen-title">🌾 Lançamento Granel</div>
+      <div style="font-size:11px; color:var(--text2);">Produtos da planilha</div>
+    </div>
+  </div>
+
+  <div class="screen-body">
+
+    <!-- Status banco automático -->
+    <div class="section-label">Banco de Produtos</div>
+    <div class="file-upload-area" id="upload-area">
+      <div class="icon" id="db-icon">⏳</div>
+      <p id="db-status">Carregando produtos.xlsx...</p>
+      <div class="file-name" id="file-name-label" style="display:none;"></div>
+    </div>
+    <!-- Fallback manual caso fetch falhe -->
+    <div id="fallback-upload" style="display:none; margin-top:8px;">
+      <div style="font-size:12px; color:var(--text2); text-align:center; margin-bottom:8px;">
+        Ou carregue manualmente:
+      </div>
+      <label style="display:block; cursor:pointer;">
+        <div class="file-upload-area" style="margin-bottom:0; padding:14px;">
+          <div class="icon" style="font-size:20px;">📂</div>
+          <p style="font-size:12px;">Toque para selecionar produtos.xlsx</p>
+          <div class="file-name" id="file-name-label2" style="display:none;"></div>
+        </div>
+        <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none;" onchange="loadExcelManual(this)">
+      </label>
+    </div>
+
+    <!-- Search -->
+    <div class="section-label">Buscar Produto</div>
+    <div class="search-bar">
+      <input type="text" id="product-search" placeholder="Nome ou código do produto..." oninput="filterProducts()">
+      <div class="search-cam-btn" onclick="openScanner('product-search')">📷</div>
+    </div>
+
+    <!-- Results -->
+    <div id="product-results">
+      <div class="empty-state">
+        <div class="icon">🔍</div>
+        <p>Carregue a planilha e busque um produto</p>
+      </div>
+    </div>
+
+    <!-- Cart -->
+    <div id="cart-section" class="cart-section" style="display:none;">
+      <div class="cart-header">
+        <span>Produtos selecionados</span>
+        <span class="cart-count" id="cart-count">0</span>
+      </div>
+      <div id="cart-items"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <button class="btn btn-secondary" onclick="openConfirmModal('granel')">
+      <span>📤</span> Enviar Lançamento Granel
+    </button>
+
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ MODAL CONFIRMAÇÃO ══════════════════════════════════════ -->
+<div class="modal-overlay" id="confirm-modal" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Confirmar Envio</div>
+    <div style="font-size:13px; color:var(--text); margin-bottom:16px;" id="modal-desc">
+      <strong></strong>
+    </div>
+
+    <div class="input-group">
+      <label>Nome do Responsável *</label>
+      <input type="text" id="responsavel-name" placeholder="Seu nome completo">
+    </div>
+
+    <div id="modal-summary" style="background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; font-size:12px; color:var(--text); margin-bottom:4px; max-height:140px; overflow-y:auto; line-height:1.7;">
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn btn-outline" style="flex:1;" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:2;" id="confirm-send-btn" onclick="sendData()">
+        ✉️ Confirmar Envio
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ SCANNER ══════════════════════════════════════ -->
+<div class="scanner-overlay" id="scanner-overlay">
+  <video id="scanner-video" class="scanner-video" autoplay playsinline muted></video>
+  <div class="scanner-frame">
+    <div class="scanner-line"></div>
+  </div>
+  <div class="scanner-text">Aponte para o código de barras</div>
+  <button class="scanner-close" onclick="closeScanner()">✕</button>
+  <button class="scanner-manual-btn" onclick="closeScanner()">Digitar manualmente</button>
+</div>
+
+<!-- ══════════════════════════════════════ TOAST ══════════════════════════════════════ -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── EMAILJS CONFIG ──
+// Passos para configurar (feito UMA vez):
+// 1. Acesse https://www.emailjs.com e crie conta gratuita com relatoriosobompet@gmail.com
+// 2. Em "Email Services" → Add Service → Gmail → autorize
+// 3. Em "Email Templates" → Create Template → use os campos {{subject}} e {{message}}
+// 4. Substitua os valores abaixo com seus IDs reais do painel EmailJS
+const EMAILJS_PUBLIC_KEY  = 'DE1bLG1OctStk_vF8';
+const EMAILJS_SERVICE_ID  = 'service_q6j3j13';
+const EMAILJS_TEMPLATE_ID = 'template_fa5k7oj';
+const EMAIL_DESTINO       = 'nellsantos@outlook.com';
+const LOJA = "O Bom Pet - Vargem Grande";
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+// ── STATE ──
+let allProducts = [];
+let cart = {};
+let currentModal = '';
+let scannerTarget = null;
+let scannerStream = null;
+let barcodeDetector = null;
+let scanInterval = null;
+
+// ── NAVIGATION ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+  if (id === 'screen-granel' && !allProducts.length) autoLoadExcel();
+}
+
+// ── CURRENCY FORMAT ──
+function formatCurrency(input) {
+  let v = input.value.replace(/\D/g, '');
+  if (!v) { input.value = ''; return; }
+  v = (parseInt(v) / 100).toFixed(2);
+  input.value = v.replace('.', ',');
+}
+
+// ── VENCIMENTOS ──
+let vencCount = 1;
+function addVenc() {
+  const list = document.getElementById('venc-list');
+  const idx = vencCount++;
+  const row = document.createElement('div');
+  row.className = 'venc-row';
+  row.dataset.index = idx;
+  row.innerHTML = `
+    <div>
+      <label>Vencimento</label>
+      <input type="date" class="venc-data">
+    </div>
+    <div>
+      <label>Valor (R$)</label>
+      <input type="text" class="venc-valor" placeholder="0,00" inputmode="decimal" oninput="formatCurrency(this)">
+    </div>
+    <div class="venc-remove" onclick="removeVenc(this)">✕</div>`;
+  list.appendChild(row);
+}
+function removeVenc(btn) {
+  const rows = document.querySelectorAll('.venc-row');
+  if (rows.length === 1) { showToast('Mantenha ao menos um vencimento', 'error'); return; }
+  btn.closest('.venc-row').remove();
+}
+function toggleVencimento() {
+  const tipo = document.getElementById('nf-tipo').value;
+  const section = document.getElementById('vencimento-section');
+  section.style.display = (tipo === 'bonificacao' || tipo === 'transferencia') ? 'none' : 'block';
+}
+
+// ── AUTO-LOAD EXCEL (busca automática na mesma pasta) ──
+async function autoLoadExcel() {
+  const icon   = document.getElementById('db-icon');
+  const status = document.getElementById('db-status');
+  icon.textContent = '⏳';
+  status.textContent = 'Carregando produtos.xlsx...';
+
+  try {
+    const resp = await fetch('produtos.xlsx', { cache: 'no-cache' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const buf = await resp.arrayBuffer();
+    parseExcelBuffer(buf, 'produtos.xlsx');
+  } catch (err) {
+    icon.textContent = '⚠️';
+    status.textContent = 'produtos.xlsx não encontrado na pasta.';
+    document.getElementById('fallback-upload').style.display = 'block';
+  }
+}
+
+// Fallback manual
+function loadExcelManual(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => parseExcelBuffer(e.target.result, file.name, true);
+  reader.readAsArrayBuffer(file);
+}
+
+function parseExcelBuffer(buffer, filename, isBinary = false) {
+  try {
+    const wb = XLSX.read(buffer, { type: isBinary ? 'binary' : 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    allProducts = data.map((row, i) => ({
+      key: i,
+      name: String(row['Nome'] || row['NOME'] || row['Produto'] || row['PRODUTO'] || row['Descrição'] || row['DESCRIÇÃO'] || Object.values(row)[1] || '').trim(),
+      code: String(row['Código'] || row['CÓDIGO'] || row['Cod'] || row['COD'] || row['EAN'] || row['Barcode'] || Object.values(row)[0] || '').trim(),
+      raw: row
+    })).filter(p => p.name || p.code);
+
+    const icon   = document.getElementById('db-icon');
+    const status = document.getElementById('db-status');
+    const label  = document.getElementById('file-name-label');
+    icon.textContent = '✅';
+    status.textContent = `${filename}`;
+    label.textContent = `${allProducts.length} produtos carregados`;
+    label.style.display = 'block';
+    document.getElementById('upload-area').classList.add('has-file');
+    document.getElementById('fallback-upload').style.display = 'none';
+    showToast(`${allProducts.length} produtos carregados!`, 'success');
+    filterProducts();
+  } catch(err) {
+    const icon   = document.getElementById('db-icon');
+    const status = document.getElementById('db-status');
+    icon.textContent = '❌';
+    status.textContent = 'Erro ao ler planilha. Verifique o arquivo.';
+    document.getElementById('fallback-upload').style.display = 'block';
+    showToast('Erro ao ler planilha.', 'error');
+  }
+}
+
+// ── FILTER PRODUCTS ──
+function filterProducts() {
+  const q = document.getElementById('product-search').value.trim().toLowerCase();
+  const container = document.getElementById('product-results');
+  
+  if (!allProducts.length) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">📊</div><p>Aguarde o carregamento da planilha</p></div>`;
+    return;
+  }
+  if (!q) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>Digite para buscar um produto</p></div>`;
+    return;
+  }
+
+  const results = allProducts.filter(p =>
+    p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q)
+  ).slice(0, 30);
+
+  if (!results.length) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">😕</div><p>Nenhum produto encontrado</p></div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="product-list">${results.map(p => `
+    <div class="product-item ${cart[p.key] ? 'selected' : ''}" onclick="selectProduct(${p.key})">
+      <div class="product-info">
+        <div class="product-name">${p.name || '—'}</div>
+        <div class="product-code">${p.code ? 'Cód: ' + p.code : ''}</div>
+      </div>
+      <div class="qty-control" onclick="event.stopPropagation()">
+        <button class="qty-btn" onclick="changeQty(${p.key}, -1)">−</button>
+        <input type="number" class="qty-val" id="qty-${p.key}" value="${cart[p.key]?.qty || 0}" min="0" onchange="setQty(${p.key}, this.value)" inputmode="numeric">
+        <button class="qty-btn" onclick="changeQty(${p.key}, 1)">+</button>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+function selectProduct(key) {
+  if (!cart[key]) changeQty(key, 1);
+}
+
+function changeQty(key, delta) {
+  const p = allProducts.find(x => x.key === key);
+  if (!p) return;
+  const current = cart[key]?.qty || 0;
+  const newQty = Math.max(0, current + delta);
+  setQty(key, newQty);
+}
+
+function setQty(key, val) {
+  const qty = Math.max(0, parseInt(val) || 0);
+  const p = allProducts.find(x => x.key === key);
+  if (!p) return;
+  if (qty === 0) { delete cart[key]; }
+  else { cart[key] = { name: p.name, code: p.code, qty }; }
+  const qtyInput = document.getElementById(`qty-${key}`);
+  if (qtyInput) qtyInput.value = qty;
+  renderCart();
+  filterProducts();
+}
+
+function renderCart() {
+  const keys = Object.keys(cart);
+  const section = document.getElementById('cart-section');
+  const countEl = document.getElementById('cart-count');
+  const itemsEl = document.getElementById('cart-items');
+  if (!keys.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  countEl.textContent = keys.length;
+  itemsEl.innerHTML = keys.map(k => `
+    <div class="cart-item">
+      <span class="cart-item-name">${cart[k].name || cart[k].code}</span>
+      <span class="cart-item-qty">${cart[k].qty}x</span>
+      <span class="cart-remove" onclick="setQty(${k}, 0)">✕</span>
+    </div>`).join('');
+}
+
+// ── MODAL ──
+function openConfirmModal(type) {
+  currentModal = type;
+  if (type === 'nf') {
+    const tipo = document.getElementById('nf-tipo');
+    if (!tipo.value) { showToast('Selecione o tipo de nota', 'error'); return; }
+    const numero = document.getElementById('nf-numero').value;
+    const valor  = document.getElementById('nf-valor').value;
+    if (!numero) { showToast('Informe o número da nota', 'error'); return; }
+    if (!valor)  { showToast('Informe o valor total', 'error'); return; }
+    const fornecedor = document.getElementById('nf-fornecedor').value.trim();
+    if (!fornecedor) { showToast('Informe o fornecedor', 'error'); return; }
+
+    document.getElementById('modal-title').textContent = '🧾 Confirmar Envio — Nota Fiscal';
+    document.getElementById('modal-desc').innerHTML = `Os dados serão enviados para <strong>${EMAIL_DESTINO}</strong>`;
+    document.getElementById('confirm-send-btn').innerHTML = '✉️ Enviar Nota Fiscal';
+
+    const vencRows = document.querySelectorAll('.venc-row');
+    const vencimentos = [];
+    vencRows.forEach(row => {
+      const d = row.querySelector('.venc-data').value;
+      const v = row.querySelector('.venc-valor').value;
+      if (d || v) vencimentos.push({ data: d, valor: v });
+    });
+
+    let summary = `<b>Fornecedor:</b> ${fornecedor}<br><b>NF Nº:</b> ${numero}<br><b>Tipo:</b> ${tipo.options[tipo.selectedIndex].text}<br><b>Valor Total:</b> R$ ${valor}`;
+    const key = document.getElementById('nf-key').value;
+    if (key) summary += `<br><b>Chave:</b> ${key.substring(0,20)}...`;
+    const obs = document.getElementById('nf-obs').value;
+    if (obs) summary += `<br><b>Obs:</b> ${obs}`;
+    if (vencimentos.length) {
+      summary += `<br><b>Vencimentos:</b>`;
+      vencimentos.forEach(v => summary += `<br>&nbsp; ${formatDate(v.data)} — R$ ${v.valor}`);
+    }
+    document.getElementById('modal-summary').innerHTML = summary;
+
+  } else {
+    const keys = Object.keys(cart);
+    if (!keys.length) { showToast('Adicione ao menos um produto', 'error'); return; }
+    document.getElementById('modal-title').textContent = 'Confirmar Lançamento Granel';
+    document.getElementById('modal-desc').innerHTML = ` <strong>${EMAIL_DESTINO}</strong>`;
+    document.getElementById('confirm-send-btn').innerHTML = '✉️ Enviar Granel';
+    let summary = `<b>Total de itens:</b> ${keys.length}<br><br>`;
+    summary += keys.map(k => `▸ ${cart[k].name || cart[k].code} — <b>${cart[k].qty}x</b>`).join('<br>');
+    document.getElementById('modal-summary').innerHTML = summary;
+  }
+
+  document.getElementById('responsavel-name').value = '';
+  document.getElementById('confirm-modal').classList.add('active');
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('confirm-modal')) {
+    document.getElementById('confirm-modal').classList.remove('active');
+  }
+}
+
+// ── SEND DATA VIA EMAILJS ──
+async function sendData() {
+  const responsavel = document.getElementById('responsavel-name').value.trim();
+  if (!responsavel) { showToast('Informe o nome do responsável', 'error'); return; }
+
+  const btn = document.getElementById('confirm-send-btn');
+  btn.innerHTML = '⏳ Enviando...';
+  btn.disabled = true;
+
+  let subject, body;
+
+  if (currentModal === 'nf') {
+    const numero   = document.getElementById('nf-numero').value;
+    const valor    = document.getElementById('nf-valor').value;
+    const tipo     = document.getElementById('nf-tipo');
+    const tipoText = tipo.options[tipo.selectedIndex].text;
+    const chave    = document.getElementById('nf-key').value;
+    const obs      = document.getElementById('nf-obs').value;
+    const fornecedor = document.getElementById('nf-fornecedor').value.trim();
+
+    const vencRows = document.querySelectorAll('.venc-row');
+    let vencText = '';
+    vencRows.forEach((row, i) => {
+      const d = row.querySelector('.venc-data').value;
+      const v = row.querySelector('.venc-valor').value;
+      if (d || v) vencText += `\n  Parcela ${i+1}: ${formatDate(d)} — R$ ${v}`;
+    });
+
+    subject = `[Nota Fiscal-APP] Nota Recebida`;
+    body = `LANÇAMENTO DE NOTA FISCAL
+${'='.repeat(40)}
+
+Responsável: ${responsavel}
+Data/Hora: ${new Date().toLocaleString('pt-BR')}
+
+DADOS DA NOTA:
+  Fornecedor: ${fornecedor}
+  Número: ${numero}
+  Tipo: ${tipoText}
+  Valor Total: R$ ${valor}
+  Chave de Acesso: ${chave || 'Não informada'}
+${obs ? `  Observações: ${obs}` : ''}
+${vencText ? `\nVENCIMENTOS:${vencText}` : ''}
+
+---
+Enviado via App Leitor de Produtos`;
+
+  } else {
+    const items = Object.values(cart);
+    subject = `[Granel-APP] Lançamento`;
+    body = `LANÇAMENTO GRANEL
+${'='.repeat(40)}
+
+Responsável: ${responsavel}
+Data/Hora: ${new Date().toLocaleString('pt-BR')}
+
+PRODUTOS:
+${items.map(p => `  ▸ ${p.name || '—'} (Cód: ${p.code || '—'}) — Qtd: ${p.qty}`).join('\n')}
+
+Total de itens: ${items.length}
+
+---
+Enviado via App Leitor de Produtos`;
+  }
+
+// EMAIL HTML
+let numero = '';
+let valor = '';
+let tipoText = '';
+let chave = '';
+let obs = '';
+let fornecedor = '';
+
+if (currentModal === 'nf') {
+
+    fornecedor = document.getElementById('nf-fornecedor').value.trim();
+
+    numero = document.getElementById('nf-numero').value;
+    valor = document.getElementById('nf-valor').value;
+
+    const tipo = document.getElementById('nf-tipo');
+    tipoText = tipo.options[tipo.selectedIndex].text;
+
+    chave = document.getElementById('nf-key').value;
+    obs = document.getElementById('nf-obs').value;
+}
+
+let htmlEmail = `
+<div style="font-family:Arial,sans-serif;background:#f4f4f4;padding:20px;">
+  <div style="max-width:700px;margin:auto;background:#ffffff;border-radius:10px;padding:25px;border:1px solid #ddd;">
+
+    <h2 style="color:#00d4aa;margin-top:0;">
+      ${currentModal === 'nf' ? 'Lançamento de Nota Fiscal' : 'Lançamento Granel'}
+    </h2>
+
+    <p>
+      <strong>Responsável:</strong> ${responsavel}<br>
+      <strong>Data/Hora:</strong> ${new Date().toLocaleString('pt-BR')}
+    </p>
+
+    <hr>
+
+    ${
+      currentModal === 'nf'
+      ?
+      `
+      <table style="width:100%;border-collapse:collapse;">
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;"><strong>Fornecedor</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">${fornecedor}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;"><strong>Número NF</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">${numero}</td>
+        </tr>
+
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;"><strong>Tipo</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">${tipoText}</td>
+        </tr>
+
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;"><strong>Valor Total</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;">R$ ${valor}</td>
+        </tr>
+
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;"><strong>Chave</strong></td>
+          <td style="padding:8px;border:1px solid #ddd;word-break:break-all;">
+            ${chave || 'Não informada'}
+          </td>
+        </tr>
+      </table>
+
+      ${
+        obs
+        ?
+        `
+        <h3>Observações</h3>
+        <div style="background:#f8f8f8;padding:10px;border-radius:6px;">
+          ${obs}
+        </div>
+        `
+        :
+        ''
+      }
+
+      ${
+Array.from(document.querySelectorAll('.venc-row')).some(row =>
+    row.querySelector('.venc-data').value ||
+    row.querySelector('.venc-valor').value
+)
+?
+`
+<h3 style="margin-top:20px;">Vencimentos</h3>
+
+<table style="width:100%;border-collapse:collapse;">
+  <tr style="background:#f2f2f2;">
+    <th style="padding:8px;border:1px solid #ddd;">Parcela</th>
+    <th style="padding:8px;border:1px solid #ddd;">Data</th>
+    <th style="padding:8px;border:1px solid #ddd;">Valor</th>
+  </tr>
+
+  ${Array.from(document.querySelectorAll('.venc-row'))
+    .filter(row =>
+      row.querySelector('.venc-data').value ||
+      row.querySelector('.venc-valor').value
+    )
+    .map((row,i)=>`
+      <tr>
+        <td style="padding:8px;border:1px solid #ddd;text-align:center;">
+          ${i+1}
+        </td>
+
+        <td style="padding:8px;border:1px solid #ddd;">
+          ${formatDate(row.querySelector('.venc-data').value)}
+        </td>
+
+        <td style="padding:8px;border:1px solid #ddd;">
+          R$ ${row.querySelector('.venc-valor').value || '0,00'}
+        </td>
+      </tr>
+    `).join('')}
+</table>
+`
+:
+''
+}
+
+      <br>
+
+      <div style="background:#f2f2f2;border:1px solid #ddd;padding:12px;">
+        <strong>Valor Total da Nota:</strong> R$ ${valor}
+      </div>
+      `
+      :
+      `
+      <table style="width:100%;border-collapse:collapse;">
+        <tr style="background:#f2f2f2;">
+          <th style="padding:8px;border:1px solid #ddd;">Produto</th>
+          <th style="padding:8px;border:1px solid #ddd;">Código</th>
+          <th style="padding:8px;border:1px solid #ddd;">Qtd</th>
+        </tr>
+
+        ${Object.values(cart).map(item=>`
+          <tr>
+            <td style="padding:8px;border:1px solid #ddd;">${item.name}</td>
+            <td style="padding:8px;border:1px solid #ddd;">${item.code}</td>
+            <td style="padding:8px;border:1px solid #ddd;text-align:center;">
+              ${item.qty}
+            </td>
+          </tr>
+        `).join('')}
+      </table>
+
+      <br>
+
+      <div style="background:#f2f2f2;border:1px solid #ddd;padding:12px;">
+        <strong>Total de Produtos:</strong> ${Object.keys(cart).length}
+      </div>
+      `
+    }
+
+  </div>
+</div>
+`;
+
+try {
+
+    await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        {
+            to_email: EMAIL_DESTINO,
+            subject: subject,
+            message: body,
+            html_content: htmlEmail,
+            loja: LOJA
+        }
+    );
+
+    showToast('Email enviado com sucesso!', 'success');
+    closeModal();
+
+    if (currentModal === 'nf') {
+
+        document.getElementById('nf-key').value = '';
+        document.getElementById('nf-numero').value = '';
+        document.getElementById('nf-valor').value = '';
+        document.getElementById('nf-tipo').value = '';
+        document.getElementById('nf-obs').value = '';
+        document.getElementById('nf-fornecedor').value = '';
+
+    } else {
+
+        cart = {};
+        renderCart();
+        document.getElementById('product-search').value = '';
+        filterProducts();
+    }
+
+} catch (error) {
+
+    console.error(error);
+    showToast('Erro ao enviar email', 'error');
+
+} finally {
+
+    btn.innerHTML = '✉️ Confirmar Envio';
+    btn.disabled = false;
+
+}
+
+
+}
+
+
+function formatDate(d) {
+  if (!d) return 'Não informada';
+  const [y, m, day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+// ── SCANNER ──
+function openScanner(targetId) {
+  scannerTarget = targetId;
+  const overlay = document.getElementById('scanner-overlay');
+  overlay.classList.add('active');
+  if ('BarcodeDetector' in window) {
+    barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'qr_code', 'code_39'] });
+  }
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } })
+    .then(stream => {
+      scannerStream = stream;
+      const video = document.getElementById('scanner-video');
+      video.srcObject = stream;
+      video.play();
+      if (barcodeDetector) {
+        scanInterval = setInterval(async () => {
+          if (video.readyState >= 2) {
+            try {
+              const barcodes = await barcodeDetector.detect(video);
+              if (barcodes.length > 0) handleScanResult(barcodes[0].rawValue);
+            } catch(e) {}
+          }
+        }, 300);
+      }
+    })
+    .catch(() => { closeScanner(); showToast('Câmera não disponível. Use entrada manual.', 'error'); });
+}
+
+function closeScanner() {
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+  if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
+  document.getElementById('scanner-overlay').classList.remove('active');
+}
+
+function handleScanResult(code) {
+  closeScanner();
+  if (scannerTarget) {
+    const input = document.getElementById(scannerTarget);
+    if (input) {
+      input.value = code;
+      input.dispatchEvent(new Event('input'));
+      showToast(`Código lido: ${code.substring(0, 20)}${code.length > 20 ? '...' : ''}`, 'success');
+    }
+  }
+}
+
+// ── TOAST ──
+function showToast(msg, type = '') {
+  const toast = document.getElementById('toast');
+  const icons = { success: '✅', error: '❌' };
+  toast.innerHTML = `${icons[type] || 'ℹ️'} ${msg}`;
+  toast.className = `toast show ${type}`;
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ── INIT ──
+toggleVencimento();
+document.getElementById('nf-tipo').addEventListener('change', toggleVencimento);
+
+// ── NAVEGAÇÃO COM BOTÃO VOLTAR NATIVO ──
+// Impede que o botão voltar do celular saia do app — navega entre telas no lugar
+let _telaAtual = 'screen-main';
+
+// Guarda referência à função original e substitui
+const _showScreenOriginal = showScreen;
+window.showScreen = function(id) {
+  _showScreenOriginal(id);
+  _telaAtual = id;
+  if (id !== 'screen-main') {
+    // Empurra estado falso: o "voltar" do sistema vai cair aqui
+    history.pushState({ tela: id }, '', location.href);
+  }
+};
+
+window.addEventListener('popstate', function(e) {
+  // 1. Scanner aberto? Fecha ele
+  if (document.getElementById('scanner-overlay').classList.contains('active')) {
+    closeScanner();
+    // Recoloca o estado para a próxima vez
+    history.pushState({ tela: _telaAtual }, '', location.href);
+    return;
+  }
+  // 2. Modal aberto? Fecha ele
+  if (document.getElementById('confirm-modal').classList.contains('active')) {
+    document.getElementById('confirm-modal').classList.remove('active');
+    history.pushState({ tela: _telaAtual }, '', location.href);
+    return;
+  }
+  // 3. Tela interna? Volta para o menu principal
+  if (_telaAtual !== 'screen-main') {
+    _showScreenOriginal('screen-main');
+    _telaAtual = 'screen-main';
+    // Não faz pushState — estamos de volta no estado raiz
+    return;
+  }
+  // 4. Já está no menu principal: deixa o comportamento padrão (minimiza app)
+});
+
+// Estado raiz ao carregar
+history.replaceState({ tela: 'screen-main' }, '', location.href);
+</script>
+</body>
+</html>
