@@ -769,7 +769,7 @@ const EMAILJS_PUBLIC_KEY  = 'DE1bLG1OctStk_vF8';
 const EMAILJS_SERVICE_ID  = 'service_q6j3j13';
 const EMAILJS_TEMPLATE_ID = 'template_fa5k7oj';
 const EMAIL_DESTINO       = 'nellsantos@outlook.com';
-const LOJA = "O Bom Pet - Vargem Grande";
+const LOJA = "O Bom Pet - Ilha de Guaratiba";
 
 emailjs.init(EMAILJS_PUBLIC_KEY);
 
@@ -981,7 +981,7 @@ function openConfirmModal(type) {
     if (!fornecedor) { showToast('Informe o fornecedor', 'error'); return; }
 
     document.getElementById('modal-title').textContent = '🧾 Confirmar Envio — Nota Fiscal';
-    document.getElementById('modal-desc').innerHTML = `Os dados serão enviados para <strong>${EMAIL_DESTINO}</strong>`;
+    document.getElementById('modal-desc').innerHTML = `Os dados serão enviados para <strong></strong>`;
     document.getElementById('confirm-send-btn').innerHTML = '✉️ Enviar Nota Fiscal';
 
     const vencRows = document.querySelectorAll('.venc-row');
@@ -1007,7 +1007,7 @@ function openConfirmModal(type) {
     const keys = Object.keys(cart);
     if (!keys.length) { showToast('Adicione ao menos um produto', 'error'); return; }
     document.getElementById('modal-title').textContent = 'Confirmar Lançamento Granel';
-    document.getElementById('modal-desc').innerHTML = ` <strong>${EMAIL_DESTINO}</strong>`;
+    document.getElementById('modal-desc').innerHTML = ` <strong></strong>`;
     document.getElementById('confirm-send-btn').innerHTML = '✉️ Enviar Granel';
     let summary = `<b>Total de itens:</b> ${keys.length}<br><br>`;
     summary += keys.map(k => `▸ ${cart[k].name || cart[k].code} — <b>${cart[k].qty}x</b>`).join('<br>');
